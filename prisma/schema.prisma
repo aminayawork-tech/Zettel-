@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // SQLite for zero-config local-first dev. Swap to "postgresql" + a DATABASE_URL
+  // for a synced multi-user deployment (needed once sharing/circles go live for real users).
+  // Note: SQLite has no native enum type, so enum-like fields below are plain Strings
+  // validated in application code (src/lib/enums.ts) — switching provider can reintroduce
+  // real Prisma enums if desired.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  entries         Entry[]
+  questions       Question[]
+  circlesOwned    Circle[]         @relation("CircleOwner")
+  circleMembers   CircleMember[]
+  shareEvents     ShareEvent[]     @relation("ShareOwner")
+  replies         Reply[]
+  challengeVotes  ChallengeResponse[]
+}
+
+// ---------------------------------------------------------------------------
+// Journal core
+// ---------------------------------------------------------------------------
+
+model Entry {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// "source_entry" | "principle"
+  type   String @default("source_entry")
+
+  // Source
+  sourceTitle String
+  /// "book" | "podcast" | "video" | "article" | "conversation" | "other"
+  sourceType  String  @default("other")
+  sourceLink  String?
+
+  // Reflection fields
+  mainIdea      String // hard-capped client + server side
+  surprise      String?
+  whyItMatters  String?
+  action        String?
+  actionDone    Boolean @default(false)
+  explanation   String? // Feynman "explain in plain English"
+  quote         String? // low word cap, enforced server-side
+  quickMode     Boolean @default(false) // true = 1-3-1 fast path
+
+  // Review / resurfacing
+  lastRatedAt  DateTime?
+  stillHoldsUp Boolean?
+
+  /// "private" | "circle" | "shared"
+  visibility String @default("private")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  takeaways          Takeaway[]
+  images             Image[]
+  questions          Question[]          @relation("EntryQuestions")
+  challengeResponses ChallengeResponse[]
+  tags               EntryTag[]
+
+  linksFrom Link[] @relation("LinkFrom")
+  linksTo   Link[] @relation("LinkTo")
+
+  shareEvents ShareEvent[]
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model Takeaway {
+  id       String  @id @default(cuid())
+  entryId  String
+  entry    Entry   @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  text     String
+  position Int     @default(0)
+  imageId  String?
+  image    Image?  @relation(fields: [imageId], references: [id])
+
+  @@index([entryId])
+}
+
+model Tag {
+  id      String     @id @default(cuid())
+  name    String     @unique
+  entries EntryTag[]
+}
+
+model EntryTag {
+  entryId String
+  tagId   String
+  entry   Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, tagId])
+}
+
+model Image {
+  id     String @id @default(cuid())
+  entryId String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  /// which field this image is attached to: "entry" | "takeaway" | "quote" | "main_idea" | "surprise"
+  field   String @default("entry")
+  url     String
+  width   Int?
+  height  Int?
+  ocrText       String? // raw extracted text from vision pass
+  aiDescription String? // short auto-description from vision pass
+  createdAt     DateTime @default(now())
+
+  takeaways Takeaway[]
+
+  @@index([entryId])
+}
+
+// ---------------------------------------------------------------------------
+// Connections engine
+// ---------------------------------------------------------------------------
+
+model Link {
+  id          String @id @default(cuid())
+  fromEntryId String
+  toEntryId   String
+  fromEntry   Entry  @relation("LinkFrom", fields: [fromEntryId], references: [id], onDelete: Cascade)
+  toEntry     Entry  @relation("LinkTo", fields: [toEntryId], references: [id], onDelete: Cascade)
+  /// "reminds_me_of" | "supports" | "contradicts" | "exemplifies"
+  relationType String @default("reminds_me_of")
+  /// "suggested" | "confirmed" | "dismissed"
+  status       String @default("suggested")
+  aiSuggested  Boolean  @default(false)
+  aiRationale  String?
+  createdAt    DateTime @default(now())
+
+  @@index([fromEntryId])
+  @@index([toEntryId])
+  @@unique([fromEntryId, toEntryId, relationType])
+}
+
+// ---------------------------------------------------------------------------
+// Open questions
+// ---------------------------------------------------------------------------
+
+model Question {
+  id            String @id @default(cuid())
+  text          String
+  userId        String
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceEntryId String
+  sourceEntry   Entry  @relation("EntryQuestions", fields: [sourceEntryId], references: [id], onDelete: Cascade)
+  /// "user" | "ai"
+  origin        String @default("user")
+  // AI-suggested questions start unaccepted (a pending suggestion on the entry page);
+  // self-written questions are accepted the moment they're written.
+  accepted      Boolean @default(true)
+  /// "open" | "answered"
+  status        String @default("open")
+  answerEntryId String?
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+
+  @@index([userId, status])
+  @@index([sourceEntryId])
+}
+
+// Feynman-test / "does this still hold up" style prompts a user answered inline.
+model ChallengeResponse {
+  id        String   @id @default(cuid())
+  entryId   String
+  entry     Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt    String
+  response  String
+  createdAt DateTime @default(now())
+
+  @@index([entryId])
+}
+
+// ---------------------------------------------------------------------------
+// Sharing & circles
+// ---------------------------------------------------------------------------
+
+model Circle {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("CircleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  members     CircleMember[]
+  shareEvents ShareEvent[]
+}
+
+model CircleMember {
+  id       String @id @default(cuid())
+  circleId String
+  circle   Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([circleId, userId])
+}
+
+model ShareEvent {
+  id      String @id @default(cuid())
+  entryId String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  ownerId String
+  owner   User   @relation("ShareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  /// "full_entry" | "takeaway" | "quote" | "principle"
+  scope   String @default("full_entry")
+  // What's actually shared when scope != full_entry (e.g. one takeaway's text or the quote).
+  snippet   String?
+  circleId  String?
+  circle    Circle?  @relation(fields: [circleId], references: [id])
+  token     String   @unique // public shareable-link token
+  createdAt DateTime @default(now())
+
+  replies Reply[]
+
+  @@index([entryId])
+  @@index([circleId])
+}
+
+model Reply {
+  id           String   @id @default(cuid())
+  shareEventId String
+  shareEvent   ShareEvent @relation(fields: [shareEventId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text         String
+  createdAt    DateTime @default(now())
+
+  @@index([shareEventId])
+}
