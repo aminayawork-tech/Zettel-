@@ -14,6 +14,7 @@ export interface EntryCardData {
   id: string;
   type: string;
   sourceTitle: string;
+  headline: string | null;
   sourceType: string;
   mainIdea: string;
   createdAt: Date;
@@ -40,7 +41,8 @@ export default function EntryCard({ entry }: { entry: EntryCardData }) {
         </div>
         <span className="text-xs text-ink/40 whitespace-nowrap">{timeAgo(entry.createdAt)}</span>
       </div>
-      <h3 className="font-serif font-semibold text-lg mt-2">{entry.sourceTitle}</h3>
+      <h3 className="font-serif font-semibold text-lg mt-2">{entry.headline || entry.sourceTitle}</h3>
+      {entry.headline && !isPrinciple && <p className="text-xs text-ink/40">{entry.sourceTitle}</p>}
       <p className="text-ink/80 text-sm mt-1 line-clamp-2">{entry.mainIdea}</p>
       {entry.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3">

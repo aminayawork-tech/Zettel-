@@ -19,9 +19,9 @@ export default async function JournalPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="font-serif text-3xl font-bold">Your journal</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold">Your journal</h1>
           <p className="text-ink/60 text-sm mt-1">{entries.length} {entries.length === 1 ? 'entry' : 'entries'}</p>
         </div>
         <Link href="/journal/new" className="btn-primary">

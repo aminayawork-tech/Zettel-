@@ -51,6 +51,10 @@ model Entry {
   /// "book" | "podcast" | "video" | "article" | "conversation" | "other"
   sourceType  String  @default("other")
   sourceLink  String?
+  // Optional punchier headline for the entry itself (distinct from sourceTitle,
+  // which names the actual source and shouldn't be embellished). AI-suggested,
+  // user-editable; falls back to sourceTitle for display when unset.
+  headline    String?
 
   // Reflection fields
   mainIdea      String // hard-capped client + server side

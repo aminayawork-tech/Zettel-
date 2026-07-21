@@ -64,7 +64,8 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
             {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
             <span>· {entry.createdAt.toLocaleDateString()}</span>
           </div>
-          <h1 className="font-serif text-3xl font-bold mt-1">{entry.sourceTitle}</h1>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold mt-1">{entry.headline || entry.sourceTitle}</h1>
+          {entry.headline && !isPrinciple && <p className="text-sm text-ink/50">{entry.sourceTitle}</p>}
           {entry.sourceLink && (
             <a href={entry.sourceLink} target="_blank" rel="noreferrer" className="text-sm text-accent underline">
               {entry.sourceLink}

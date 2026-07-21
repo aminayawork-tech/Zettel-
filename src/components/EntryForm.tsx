@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createEntry } from '@/app/actions/entries';
+import { createEntry, polishEntryDraft } from '@/app/actions/entries';
+import type { PolishResult } from '@/lib/ai';
 import { LIMITS, SOURCE_TYPES } from '@/lib/enums';
 import { wordCount } from '@/lib/utils';
 import ImageSlot from '@/components/ImageSlot';
@@ -12,11 +13,12 @@ const QUOTE_WORD_CAP = 30;
 export default function EntryForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [quickMode, setQuickMode] = useState(false);
+  const [quickMode, setQuickMode] = useState(true);
 
   const [sourceTitle, setSourceTitle] = useState('');
   const [sourceType, setSourceType] = useState('book');
   const [sourceLink, setSourceLink] = useState('');
+  const [headline, setHeadline] = useState('');
   const [mainIdea, setMainIdea] = useState('');
   const [takeaways, setTakeaways] = useState(['', '', '']);
   const [surprise, setSurprise] = useState('');
@@ -31,7 +33,65 @@ export default function EntryForm() {
   const [takeawayImages, setTakeawayImages] = useState<(File | null)[]>([null, null, null]);
   const [quoteImage, setQuoteImage] = useState<File | null>(null);
 
+  const [polishing, setPolishing] = useState(false);
+  const [polishError, setPolishError] = useState<string | null>(null);
+  const [polishResult, setPolishResult] = useState<PolishResult | null>(null);
+  const [polishBaseline, setPolishBaseline] = useState<{ mainIdea: string; takeaways: string[]; surprise: string; whyItMatters: string; explanation: string; quote: string } | null>(null);
+
   const takeawayLabel = quickMode ? 'Important Points' : 'Three Key Takeaways';
+
+  function handlePolish() {
+    setPolishError(null);
+    if (!sourceTitle.trim() || !mainIdea.trim()) {
+      setPolishError('Add a source title and main idea first.');
+      return;
+    }
+    setPolishing(true);
+    setPolishResult(null);
+    const baseline = { mainIdea, takeaways: [...takeaways], surprise, whyItMatters, explanation, quote };
+    startTransition(async () => {
+      try {
+        const result = await polishEntryDraft({
+          sourceTitle,
+          mainIdea,
+          takeaways: takeaways.filter(Boolean),
+          surprise: surprise || undefined,
+          whyItMatters: whyItMatters || undefined,
+          explanation: explanation || undefined,
+          quote: quote || undefined,
+        });
+        setPolishing(false);
+        if (!result) {
+          setPolishError('AI polish is unavailable right now.');
+          return;
+        }
+        setPolishBaseline(baseline);
+        setPolishResult(result);
+      } catch (e) {
+        setPolishing(false);
+        setPolishError(e instanceof Error ? e.message : 'Something went wrong.');
+      }
+    });
+  }
+
+  function applyAllCorrections() {
+    if (!polishResult) return;
+    setMainIdea(polishResult.corrected.mainIdea.slice(0, LIMITS.mainIdea));
+    setTakeaways((prev) => prev.map((t, i) => polishResult.corrected.takeaways[i] ?? t));
+    if (!quickMode) {
+      setSurprise(polishResult.corrected.surprise);
+      setWhyItMatters(polishResult.corrected.whyItMatters);
+      setExplanation(polishResult.corrected.explanation);
+      setQuote(polishResult.corrected.quote.slice(0, 400));
+    }
+    setPolishResult(null);
+    setPolishBaseline(null);
+  }
+
+  function useSuggestedHeadline() {
+    if (!polishResult) return;
+    setHeadline(polishResult.headline.slice(0, LIMITS.mainIdea));
+  }
 
   function handleSubmit() {
     setError(null);
@@ -43,6 +103,7 @@ export default function EntryForm() {
     fd.set('sourceTitle', sourceTitle);
     fd.set('sourceType', sourceType);
     fd.set('sourceLink', sourceLink);
+    fd.set('headline', headline);
     fd.set('mainIdea', mainIdea);
     takeaways.forEach((t, i) => fd.set(`takeaway_${i}`, t));
     fd.set('surprise', quickMode ? '' : surprise);
@@ -75,8 +136,8 @@ export default function EntryForm() {
 
   return (
     <div className="space-y-8 pb-16">
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl font-bold">New entry</h1>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold">New entry</h1>
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
           <span className={quickMode ? 'text-ink/40' : 'font-medium'}>Full</span>
           <span className="relative inline-block w-10 h-5">
@@ -269,13 +330,83 @@ export default function EntryForm() {
         </>
       )}
 
+      {/* AI Polish */}
+      <section className="card p-5 space-y-3 border-accent/20">
+        <div>
+          <h2 className="font-serif text-lg font-semibold">Headline <span className="text-ink/40 font-normal text-sm">(optional)</span></h2>
+          <p className="text-xs text-ink/50 mb-2">A punchier title for this reflection — separate from {sourceTitle || 'the source'}&apos;s actual title.</p>
+          <input
+            className="input"
+            maxLength={LIMITS.mainIdea}
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            placeholder="Zettel can suggest one below"
+          />
+        </div>
+
+        <button type="button" disabled={polishing} className="btn-secondary text-sm" onClick={handlePolish}>
+          {polishing ? 'Polishing…' : '✨ Polish with AI'}
+        </button>
+        <p className="text-xs text-ink/40 -mt-2">Grammar-checks what you&apos;ve written and suggests a headline. Your voice and meaning stay intact.</p>
+
+        {polishError && <p className="text-sm text-red-600">{polishError}</p>}
+
+        {polishResult && polishBaseline && (
+          <div className="border border-accent/30 bg-accent/5 rounded-md p-3 space-y-3">
+            {polishResult.headline && (
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span>
+                  Suggested headline: <span className="font-medium">{polishResult.headline}</span>
+                </span>
+                <button type="button" className="btn-secondary text-xs py-1 shrink-0" onClick={useSuggestedHeadline}>
+                  Use this
+                </button>
+              </div>
+            )}
+
+            <PolishDiff label="Main idea" before={polishBaseline.mainIdea} after={polishResult.corrected.mainIdea} />
+            {polishBaseline.takeaways.map((t, i) => (
+              <PolishDiff key={i} label={`Takeaway ${i + 1}`} before={t} after={polishResult.corrected.takeaways[i] || t} />
+            ))}
+            {!quickMode && (
+              <>
+                <PolishDiff label="Surprise" before={polishBaseline.surprise} after={polishResult.corrected.surprise} />
+                <PolishDiff label="Why it matters" before={polishBaseline.whyItMatters} after={polishResult.corrected.whyItMatters} />
+                <PolishDiff label="Explanation" before={polishBaseline.explanation} after={polishResult.corrected.explanation} />
+                <PolishDiff label="Quote" before={polishBaseline.quote} after={polishResult.corrected.quote} />
+              </>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button type="button" className="btn-primary text-xs py-1.5" onClick={applyAllCorrections}>
+                Apply grammar corrections
+              </button>
+              <button type="button" className="btn-ghost text-xs py-1.5" onClick={() => { setPolishResult(null); setPolishBaseline(null); }}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="sticky bottom-4 flex justify-end">
-        <button type="button" disabled={pending} onClick={handleSubmit} className="btn-primary shadow-lg px-8">
+      <div className="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-paper/95 backdrop-blur border-t border-ink/10 sm:border-0 sm:bg-transparent sm:backdrop-blur-none flex sm:justify-end">
+        <button type="button" disabled={pending} onClick={handleSubmit} className="btn-primary shadow-lg w-full sm:w-auto sm:px-8">
           {pending ? 'Saving…' : 'Save entry'}
         </button>
       </div>
+    </div>
+  );
+}
+
+function PolishDiff({ label, before, after }: { label: string; before: string; after: string }) {
+  if (!before.trim() || !after.trim() || before.trim() === after.trim()) return null;
+  return (
+    <div className="text-sm">
+      <p className="text-xs text-ink/40">{label}</p>
+      <p className="text-ink/40 line-through decoration-ink/30">{before}</p>
+      <p>{after}</p>
     </div>
   );
 }

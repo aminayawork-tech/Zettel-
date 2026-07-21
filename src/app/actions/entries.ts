@@ -5,7 +5,15 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/session';
 import { processUploadedImage } from '@/lib/image-pipeline';
-import { suggestConnections, suggestQuestions, type NewEntryContext, type PastEntrySummary } from '@/lib/ai';
+import {
+  suggestConnections,
+  suggestQuestions,
+  polishEntry,
+  type NewEntryContext,
+  type PastEntrySummary,
+  type PolishInput,
+  type PolishResult,
+} from '@/lib/ai';
 import { LIMITS, type RelationType } from '@/lib/enums';
 import { capWords } from '@/lib/utils';
 
@@ -33,12 +41,21 @@ async function attachImage(entryId: string, file: File, field: string, takeawayI
   return image;
 }
 
+export async function polishEntryDraft(input: PolishInput): Promise<PolishResult | null> {
+  await requireUser();
+  if (!input.sourceTitle.trim() || !input.mainIdea.trim()) {
+    throw new Error('Add a source title and main idea before polishing.');
+  }
+  return polishEntry(input);
+}
+
 export async function createEntry(formData: FormData) {
   const user = await requireUser();
 
   const sourceTitle = String(formData.get('sourceTitle') || '').trim();
   const sourceType = String(formData.get('sourceType') || 'other');
   const sourceLink = String(formData.get('sourceLink') || '').trim() || null;
+  const headline = String(formData.get('headline') || '').trim().slice(0, LIMITS.mainIdea) || null;
   const mainIdea = capWords(String(formData.get('mainIdea') || '').trim().slice(0, LIMITS.mainIdea), 40);
   const surprise = String(formData.get('surprise') || '').trim() || null;
   const whyItMatters = String(formData.get('whyItMatters') || '').trim() || null;
@@ -77,6 +94,7 @@ export async function createEntry(formData: FormData) {
       sourceTitle,
       sourceType,
       sourceLink,
+      headline,
       mainIdea,
       surprise,
       whyItMatters,

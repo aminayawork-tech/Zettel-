@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/session';
-import SignOutButton from '@/components/SignOutButton';
 import { prisma } from '@/lib/prisma';
+import NavMenu from '@/components/NavMenu';
 
 export default async function Nav() {
   const user = await getCurrentUser();
@@ -12,6 +12,7 @@ export default async function Nav() {
   const links = [
     { href: '/journal', label: 'Journal' },
     { href: '/journal/new', label: 'New Entry' },
+    { href: '/calendar', label: 'Calendar' },
     { href: '/graph', label: 'Graph' },
     { href: '/feed', label: 'Feed' },
     { href: '/circles', label: 'Circles' },
@@ -25,20 +26,7 @@ export default async function Nav() {
         <Link href="/journal" className="font-serif text-xl font-bold tracking-tight">
           Zettel
         </Link>
-        <nav className="flex items-center gap-1 text-sm flex-wrap">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className="btn-ghost relative">
-              {l.label}
-              {l.href === '/digest' && openQuestionCount > 0 && (
-                <span className="ml-1.5 chip bg-accent/15 text-accent">{openQuestionCount}</span>
-              )}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2 text-sm text-ink/60">
-          <span className="hidden sm:inline">{user.name}</span>
-          <SignOutButton />
-        </div>
+        <NavMenu links={links} openQuestionCount={openQuestionCount} userName={user.name || ''} />
       </div>
     </header>
   );

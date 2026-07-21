@@ -240,3 +240,104 @@ Suggest 2-3 additional sharp open questions this entry hasn't addressed, drawing
     return [];
   }
 }
+
+// ---------------------------------------------------------------------------
+// Polish: grammar/clarity pass on the user's own writing, plus a suggested
+// headline for the entry. Never touches sourceTitle (the actual book/podcast/
+// etc. title) — only the user's own reflection text and an optional headline.
+// ---------------------------------------------------------------------------
+
+export interface PolishInput {
+  sourceTitle: string;
+  mainIdea: string;
+  takeaways: string[];
+  surprise?: string;
+  whyItMatters?: string;
+  explanation?: string;
+  quote?: string;
+}
+
+export interface PolishResult {
+  headline: string;
+  corrected: {
+    mainIdea: string;
+    takeaways: string[];
+    surprise: string;
+    whyItMatters: string;
+    explanation: string;
+    quote: string;
+  };
+}
+
+export async function polishEntry(entry: PolishInput): Promise<PolishResult | null> {
+  const anthropic = getClient();
+  if (!anthropic) return null;
+  try {
+    const resp = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 800,
+      tools: [
+        {
+          name: 'record_polish',
+          description: 'Record grammar-corrected text and a suggested headline for the entry.',
+          input_schema: {
+            type: 'object',
+            properties: {
+              headline: {
+                type: 'string',
+                description: 'A short, engaging headline for this reflection (not the source title itself) — capture the hook or the surprising part, max ~10 words.',
+              },
+              corrected_main_idea: { type: 'string' },
+              corrected_takeaways: { type: 'array', items: { type: 'string' } },
+              corrected_surprise: { type: 'string' },
+              corrected_why_it_matters: { type: 'string' },
+              corrected_explanation: { type: 'string' },
+              corrected_quote: { type: 'string' },
+            },
+            required: ['headline', 'corrected_main_idea', 'corrected_takeaways'],
+          },
+        },
+      ],
+      tool_choice: { type: 'tool', name: 'record_polish' },
+      messages: [
+        {
+          role: 'user',
+          content: `Proofread this learning journal entry and suggest a headline for it.
+
+Source: ${entry.sourceTitle}
+Main idea: ${entry.mainIdea}
+Takeaways:
+${entry.takeaways.map((t, i) => `${i + 1}. ${t}`).join('\n')}
+${entry.surprise ? `What surprised them: ${entry.surprise}\n` : ''}${entry.whyItMatters ? `Why it matters: ${entry.whyItMatters}\n` : ''}${entry.explanation ? `Plain-English explanation: ${entry.explanation}\n` : ''}${entry.quote ? `Quote: ${entry.quote}\n` : ''}
+
+Fix only grammar, spelling, and awkward phrasing — preserve the person's own voice, meaning, and length; don't rewrite their ideas or make them more formal. Return every field you were given back (corrected or unchanged if it was already fine); leave any field the user left blank as an empty string. Also suggest one short, engaging headline for the entry itself (their reflection, not the source's actual title) — something that captures the hook or the surprising takeaway, not a generic restatement.`,
+        },
+      ],
+    });
+    const toolUse = resp.content.find((b) => b.type === 'tool_use');
+    if (!toolUse || toolUse.type !== 'tool_use') return null;
+    const input = toolUse.input as {
+      headline?: string;
+      corrected_main_idea?: string;
+      corrected_takeaways?: string[];
+      corrected_surprise?: string;
+      corrected_why_it_matters?: string;
+      corrected_explanation?: string;
+      corrected_quote?: string;
+    };
+    return {
+      headline: input.headline || '',
+      corrected: {
+        mainIdea: input.corrected_main_idea || entry.mainIdea,
+        takeaways: input.corrected_takeaways?.length ? input.corrected_takeaways : entry.takeaways,
+        surprise: input.corrected_surprise ?? entry.surprise ?? '',
+        whyItMatters: input.corrected_why_it_matters ?? entry.whyItMatters ?? '',
+        explanation: input.corrected_explanation ?? entry.explanation ?? '',
+        quote: input.corrected_quote ?? entry.quote ?? '',
+      },
+    };
+  } catch (err) {
+    console.error('polishEntry failed', err);
+    return null;
+  }
+}
