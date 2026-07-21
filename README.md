@@ -12,12 +12,13 @@ instead of staying buried in a private log.
 - **Next.js 14 (App Router) + TypeScript + Tailwind CSS** — server components
   for data-heavy pages, server actions for all mutations (no separate REST/API
   layer to keep in sync).
-- **Prisma + SQLite** for zero-config local persistence. SQLite has no native
-  enum type, so enum-like fields (`relationType`, `status`, `visibility`, …)
-  are plain `String` columns validated in `src/lib/enums.ts` instead of
-  Prisma enums — swap the datasource `provider` to `"postgresql"` + a real
-  `DATABASE_URL` for a synced multi-user deployment, and those can become
-  proper enums again if you want.
+- **Prisma + Postgres.** Point `DATABASE_URL` at Vercel Postgres, Neon,
+  Supabase, or a local Postgres for dev — this can't be SQLite, because
+  Vercel's serverless functions have no writable disk that persists between
+  invocations. (Enum-like fields — `relationType`, `status`, `visibility`, …
+  — are still plain `String` columns validated in `src/lib/enums.ts` rather
+  than native Prisma enums, a holdover from an earlier SQLite-based version;
+  Postgres supports real enums if you want to tighten this later.)
 - **NextAuth (Credentials provider) + bcrypt** for auth. Simple email/password
   — no OAuth wiring needed to get a working multi-user app.
 - **Anthropic API (`@anthropic-ai/sdk`)** powers three things, all in
@@ -34,10 +35,11 @@ instead of staying buried in a private log.
   - All three are best-effort: no `ANTHROPIC_API_KEY` (or a failed call)
     means an empty result, never a crash. The rest of the app never depends
     on the LLM being reachable.
-- **Local filesystem storage** (`src/lib/storage.ts`) for uploaded images,
-  behind a one-function abstraction — swap the body of `saveImageBuffer` for
-  an S3/Cloudinary SDK call to go to production; nothing above that layer
-  changes. `sharp` handles server-side resizing/orientation;
+- **Image storage** (`src/lib/storage.ts`) behind a one-function
+  abstraction: uses **Vercel Blob** when `BLOB_READ_WRITE_TOKEN` is set,
+  falls back to the local filesystem otherwise (fine for dev; loses every
+  upload on the next deploy/cold start on Vercel — always set the token in
+  production). `sharp` handles server-side resizing/orientation;
   `browser-image-compression` does client-side compression before upload.
 - **d3-force** for a from-scratch SVG force-directed graph view (nodes =
   entries/principles, edges = confirmed links) — avoids a heavier
@@ -63,10 +65,15 @@ costs:
 
 ## Getting started
 
+Needs a Postgres database — a local one is easiest for dev:
+
 ```bash
+# one-time: create a local Postgres db (adjust to however Postgres is set up on your machine)
+createdb zettel
+
 npm install
-cp .env.example .env   # fill in NEXTAUTH_SECRET and (optionally) ANTHROPIC_API_KEY
-npm run db:push        # creates prisma/dev.db from the schema
+cp .env.example .env   # set DATABASE_URL, NEXTAUTH_SECRET, and (optionally) ANTHROPIC_API_KEY
+npm run db:push        # applies the schema to DATABASE_URL
 npm run db:seed        # optional demo data — two users, two entries, a circle
 npm run dev
 ```
@@ -76,6 +83,31 @@ Seeded demo accounts (after `db:seed`): `alex@example.com` /
 
 Without `ANTHROPIC_API_KEY` set, the app runs fully — you just won't see AI
 connection/question suggestions or image OCR/descriptions.
+
+## Deploying to Vercel
+
+The two things a plain local-first app doesn't need, and this one does:
+
+1. **Database.** Add a Postgres integration (Vercel Postgres, or connect
+   Neon/Supabase) — this sets `DATABASE_URL` in your Vercel project
+   automatically. Then push the schema to it once from your machine:
+   ```bash
+   DATABASE_URL="<the same URL Vercel is using>" npx prisma db push
+   ```
+   (`db push` isn't run automatically on deploy — Vercel just runs `next
+   build`, which only calls `prisma generate` via `postinstall`.)
+2. **Image storage.** Add a Blob store (Vercel dashboard → Storage → Blob →
+   Create → Connect to Project) — this sets `BLOB_READ_WRITE_TOKEN`
+   automatically. Skipping this doesn't break the build, but every uploaded
+   image silently disappears on the next deploy.
+3. Also set `NEXTAUTH_SECRET` (any long random string — `openssl rand -base64
+   32`) and, optionally, `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` in the
+   Vercel project's Environment Variables.
+
+If you deploy without step 1, every page that touches the database (which is
+most of them, since even the login flow queries `User`) throws a server-side
+exception — that's the most common cause of a blank "Application error" on a
+fresh deploy.
 
 ## Data model
 

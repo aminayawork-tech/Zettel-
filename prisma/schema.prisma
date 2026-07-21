@@ -3,12 +3,15 @@ generator client {
 }
 
 datasource db {
-  // SQLite for zero-config local-first dev. Swap to "postgresql" + a DATABASE_URL
-  // for a synced multi-user deployment (needed once sharing/circles go live for real users).
-  // Note: SQLite has no native enum type, so enum-like fields below are plain Strings
-  // validated in application code (src/lib/enums.ts) — switching provider can reintroduce
-  // real Prisma enums if desired.
-  provider = "sqlite"
+  // Postgres — required for deployment (Vercel's serverless functions have no
+  // persistent/writable disk across invocations, so a SQLite file doesn't survive
+  // between requests). Point DATABASE_URL at Vercel Postgres, Neon, Supabase, or
+  // any Postgres instance; a local Postgres works fine for dev too.
+  // Note: enum-like fields below (relationType, status, visibility, ...) are plain
+  // Strings validated in application code (src/lib/enums.ts) rather than native
+  // Prisma enums — carried over from when this ran on SQLite, which has no enum
+  // type. Postgres supports real enums if you want to tighten this later.
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
