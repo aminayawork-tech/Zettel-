@@ -85,6 +85,16 @@ export function SparklesIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
   );
 }
 
+export function MoreIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <circle cx="12" cy="5" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="12" cy="19" r="1.75" />
+    </svg>
+  );
+}
+
 export function XIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>

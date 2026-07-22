@@ -15,7 +15,7 @@ export interface EntryCardData {
   _count?: { takeaways: number; questions: number };
 }
 
-export function EntryCardContent({ entry }: { entry: EntryCardData }) {
+export function EntryCardContent({ entry, actions }: { entry: EntryCardData; actions?: React.ReactNode }) {
   const isPrinciple = entry.type === 'principle';
   return (
     <>
@@ -30,7 +30,10 @@ export function EntryCardContent({ entry }: { entry: EntryCardData }) {
           )}
           {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
         </div>
-        <span className="text-xs text-ink/40 whitespace-nowrap">{timeAgo(entry.createdAt)}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-ink/40 whitespace-nowrap">{timeAgo(entry.createdAt)}</span>
+          {actions}
+        </div>
       </div>
       <h3 className="font-serif font-semibold text-lg mt-2">{entry.headline || entry.sourceTitle}</h3>
       {entry.headline && !isPrinciple && <p className="text-xs text-ink/40">{entry.sourceTitle}</p>}
