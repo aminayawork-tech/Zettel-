@@ -22,23 +22,31 @@ function fileOrNull(fd: FormData, key: string): File | null {
   return f instanceof File && f.size > 0 ? f : null;
 }
 
+// Image storage/processing can fail independently of the entry itself (e.g. no
+// Blob store configured yet in production). Never let that take down the whole
+// save — the rest of the reflection is worth keeping even if one photo isn't.
 async function attachImage(entryId: string, file: File, field: string, takeawayId?: string) {
-  const processed = await processUploadedImage(file);
-  const image = await prisma.image.create({
-    data: {
-      entryId,
-      field,
-      url: processed.url,
-      width: processed.width,
-      height: processed.height,
-      ocrText: processed.ocrText,
-      aiDescription: processed.aiDescription,
-    },
-  });
-  if (takeawayId) {
-    await prisma.takeaway.update({ where: { id: takeawayId }, data: { imageId: image.id } });
+  try {
+    const processed = await processUploadedImage(file);
+    const image = await prisma.image.create({
+      data: {
+        entryId,
+        field,
+        url: processed.url,
+        width: processed.width,
+        height: processed.height,
+        ocrText: processed.ocrText,
+        aiDescription: processed.aiDescription,
+      },
+    });
+    if (takeawayId) {
+      await prisma.takeaway.update({ where: { id: takeawayId }, data: { imageId: image.id } });
+    }
+    return image;
+  } catch (err) {
+    console.error('attachImage failed', err);
+    return null;
   }
-  return image;
 }
 
 export async function polishEntryDraft(input: PolishInput): Promise<PolishResult | null> {
@@ -127,29 +135,29 @@ export async function createEntry(formData: FormData) {
   let imageText = '';
   for (const file of entryImages) {
     const img = await attachImage(entry.id, file, 'entry');
-    if (img.ocrText) imageText += `${img.ocrText}\n`;
+    if (img?.ocrText) imageText += `${img.ocrText}\n`;
   }
   // Field-specific images
   const mainIdeaImage = fileOrNull(formData, 'mainIdeaImage');
   if (mainIdeaImage) {
     const img = await attachImage(entry.id, mainIdeaImage, 'main_idea');
-    if (img.ocrText) imageText += `${img.ocrText}\n`;
+    if (img?.ocrText) imageText += `${img.ocrText}\n`;
   }
   const surpriseImage = fileOrNull(formData, 'surpriseImage');
   if (surpriseImage) {
     const img = await attachImage(entry.id, surpriseImage, 'surprise');
-    if (img.ocrText) imageText += `${img.ocrText}\n`;
+    if (img?.ocrText) imageText += `${img.ocrText}\n`;
   }
   const quoteImage = fileOrNull(formData, 'quoteImage');
   if (quoteImage) {
     const img = await attachImage(entry.id, quoteImage, 'quote');
-    if (img.ocrText) imageText += `${img.ocrText}\n`;
+    if (img?.ocrText) imageText += `${img.ocrText}\n`;
   }
   for (let i = 0; i < entry.takeaways.length; i++) {
     const file = fileOrNull(formData, `takeawayImage_${i}`);
     if (file) {
       const img = await attachImage(entry.id, file, 'takeaway', entry.takeaways[i].id);
-      if (img.ocrText) imageText += `${img.ocrText}\n`;
+      if (img?.ocrText) imageText += `${img.ocrText}\n`;
     }
   }
 
