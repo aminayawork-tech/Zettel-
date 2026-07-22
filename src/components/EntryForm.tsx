@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { createEntry, updateEntry, polishEntryDraft } from '@/app/actions/entries';
 import type { PolishResult } from '@/lib/ai';
 import { LIMITS, SOURCE_TYPES } from '@/lib/enums';
+import { XIcon, SparklesIcon } from '@/components/icons';
 import { wordCount } from '@/lib/utils';
 import ImageSlot from '@/components/ImageSlot';
 import EntryImagesUploader from '@/components/EntryImagesUploader';
@@ -320,8 +321,8 @@ export default function EntryForm({ mode = 'create', entryId, initialEntry }: En
                     placeholder="What am I still unsure about?"
                   />
                   {questions.length > 1 && (
-                    <button type="button" className="text-ink/30 hover:text-ink" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
-                      ×
+                    <button type="button" className="text-ink/30 hover:text-ink" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))} aria-label="Remove question">
+                      <XIcon className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -385,8 +386,12 @@ export default function EntryForm({ mode = 'create', entryId, initialEntry }: En
           />
         </div>
 
-        <button type="button" disabled={polishing} className="btn-secondary text-sm" onClick={handlePolish}>
-          {polishing ? 'Polishing…' : '✨ Polish with AI'}
+        <button type="button" disabled={polishing} className="btn-secondary text-sm inline-flex items-center gap-1.5" onClick={handlePolish}>
+          {polishing ? 'Polishing…' : (
+            <>
+              <SparklesIcon className="w-4 h-4" /> Polish with AI
+            </>
+          )}
         </button>
         <p className="text-xs text-ink/40 -mt-2">Grammar-checks what you&apos;ve written and suggests a headline. Your voice and meaning stay intact.</p>
 

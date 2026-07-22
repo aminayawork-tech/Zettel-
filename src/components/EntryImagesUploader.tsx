@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { compressImage } from '@/lib/client-image';
+import { CameraIcon, XIcon } from '@/components/icons';
 
 export default function EntryImagesUploader({ onChange }: { onChange: (files: File[]) => void }) {
   const [items, setItems] = useState<{ file: File; preview: string }[]>([]);
@@ -35,16 +36,23 @@ export default function EntryImagesUploader({ onChange }: { onChange: (files: Fi
             <button
               type="button"
               onClick={() => remove(idx)}
-              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-ink text-paper text-xs leading-5"
+              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-ink text-paper flex items-center justify-center"
               aria-label="Remove image"
             >
-              ×
+              <XIcon className="w-3 h-3" />
             </button>
           </div>
         ))}
-        <label className="h-20 w-20 flex items-center justify-center rounded-md border-2 border-dashed border-ink/20 text-ink/40 hover:border-accent hover:text-accent cursor-pointer text-xs text-center px-1">
+        <label className="h-20 w-20 flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-ink/20 text-ink/40 hover:border-accent hover:text-accent cursor-pointer text-xs text-center px-1">
           <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
-          {busy ? 'Compressing…' : '+ Photo'}
+          {busy ? (
+            'Compressing…'
+          ) : (
+            <>
+              <CameraIcon className="w-5 h-5" />
+              Photo
+            </>
+          )}
         </label>
       </div>
       <p className="text-xs text-ink/40">A book page, whiteboard, screenshot, or handwritten note. We&apos;ll pull out any text automatically.</p>

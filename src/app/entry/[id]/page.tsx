@@ -10,15 +10,7 @@ import ShareDialog from '@/components/ShareDialog';
 import EntryActions from '@/components/EntryActions';
 import StillHoldsUp from '@/components/StillHoldsUp';
 import ActionCheckbox from '@/components/ActionCheckbox';
-
-const SOURCE_ICON: Record<string, string> = {
-  book: '📖',
-  podcast: '🎙️',
-  video: '🎬',
-  article: '📰',
-  conversation: '💬',
-  other: '✳️',
-};
+import { SourceIcon } from '@/components/icons';
 
 export default async function EntryPage({ params }: { params: { id: string } }) {
   const user = await requireUser();
@@ -59,7 +51,9 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
             {isPrinciple ? (
               <span className="chip bg-moss/15 text-moss">Principle</span>
             ) : (
-              <span>{SOURCE_ICON[entry.sourceType] || '✳️'} {entry.sourceType}</span>
+              <span className="inline-flex items-center gap-1">
+                <SourceIcon type={entry.sourceType} className="w-3.5 h-3.5" /> {entry.sourceType}
+              </span>
             )}
             {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
             <span>· {entry.createdAt.toLocaleDateString()}</span>
