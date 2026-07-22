@@ -58,14 +58,14 @@ export default function ConnectionsPanel({
         <div className="space-y-2">
           <p className="label">Confirmed</p>
           {confirmed.map((l) => (
-            <div key={l.id} className="flex items-center justify-between text-sm border border-ink/10 rounded-md px-3 py-2">
-              <span>
+            <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border border-ink/10 rounded-md px-3 py-2">
+              <span className="min-w-0">
                 <span className="chip bg-moss/10 text-moss mr-2">{RELATION_LABELS[l.relationType]}</span>
                 <Link href={`/entry/${l.other.id}`} className="hover:text-accent">
                   {l.other.title}
                 </Link>
               </span>
-              <button className="text-ink/30 hover:text-red-600 text-xs" onClick={() => startTransition(() => deleteLink(l.id))}>
+              <button className="text-ink/30 hover:text-red-600 text-xs shrink-0" onClick={() => startTransition(() => deleteLink(l.id))}>
                 Remove
               </button>
             </div>
@@ -109,12 +109,12 @@ function SuggestedLinkRow({
 
   return (
     <div className="border border-accent/30 bg-accent/5 rounded-md p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <Link href={`/entry/${link.other.id}`} className="font-medium text-sm hover:text-accent">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link href={`/entry/${link.other.id}`} className="font-medium text-sm hover:text-accent min-w-0">
           {link.other.title}
         </Link>
         <select
-          className="text-xs border border-ink/20 rounded-md px-1.5 py-1 bg-white"
+          className="text-xs border border-ink/20 rounded-md px-1.5 py-1 bg-white shrink-0"
           value={relationType}
           onChange={(e) => setRelationType(e.target.value as RelationType)}
         >

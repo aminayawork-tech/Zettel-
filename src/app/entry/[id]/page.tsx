@@ -72,7 +72,14 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
             </a>
           )}
         </div>
-        <EntryActions entryId={entry.id} />
+        <div className="flex items-center gap-3 shrink-0">
+          {!isPrinciple && (
+            <Link href={`/entry/${entry.id}/edit`} className="btn-ghost text-xs text-ink/40 hover:text-ink">
+              Edit
+            </Link>
+          )}
+          <EntryActions entryId={entry.id} />
+        </div>
       </div>
 
       <section className="card p-6">

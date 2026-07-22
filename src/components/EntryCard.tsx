@@ -23,13 +23,10 @@ export interface EntryCardData {
   _count?: { takeaways: number; questions: number };
 }
 
-export default function EntryCard({ entry }: { entry: EntryCardData }) {
+export function EntryCardContent({ entry }: { entry: EntryCardData }) {
   const isPrinciple = entry.type === 'principle';
   return (
-    <Link
-      href={`/entry/${entry.id}`}
-      className="card block p-4 hover:border-accent/50 hover:shadow-md transition-all"
-    >
+    <>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 text-xs text-ink/50">
           {isPrinciple ? (
@@ -53,6 +50,14 @@ export default function EntryCard({ entry }: { entry: EntryCardData }) {
           ))}
         </div>
       )}
+    </>
+  );
+}
+
+export default function EntryCard({ entry }: { entry: EntryCardData }) {
+  return (
+    <Link href={`/entry/${entry.id}`} className="card block p-4 hover:border-accent/50 hover:shadow-md transition-all">
+      <EntryCardContent entry={entry} />
     </Link>
   );
 }

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { requireUser } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
-import EntryCard from '@/components/EntryCard';
+import SwipeableEntryCard from '@/components/SwipeableEntryCard';
 
 export default async function JournalPage({
   searchParams,
@@ -52,11 +52,14 @@ export default async function JournalPage({
           </Link>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {entries.map((entry) => (
-            <EntryCard key={entry.id} entry={entry} />
-          ))}
-        </div>
+        <>
+          <p className="text-xs text-ink/40 mb-3 sm:hidden">Swipe an entry left for edit/delete.</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {entries.map((entry) => (
+              <SwipeableEntryCard key={entry.id} entry={entry} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

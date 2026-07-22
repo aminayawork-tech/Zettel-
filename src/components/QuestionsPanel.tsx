@@ -42,8 +42,8 @@ export default function QuestionsPanel({
         <div className="space-y-2">
           <p className="label">Zettel suggests</p>
           {pendingAi.map((q) => (
-            <div key={q.id} className="flex items-center justify-between gap-2 border border-accent/30 bg-accent/5 rounded-md px-3 py-2 text-sm">
-              <span>{q.text}</span>
+            <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border border-accent/30 bg-accent/5 rounded-md px-3 py-2 text-sm">
+              <span className="min-w-0">{q.text}</span>
               <div className="flex gap-1 shrink-0">
                 <button disabled={pending} className="btn-secondary text-xs py-1" onClick={() => startTransition(() => acceptAiQuestion(q.id))}>
                   Accept
@@ -85,8 +85,8 @@ function QuestionRow({
 
   return (
     <div className="border border-ink/10 rounded-md px-3 py-2 text-sm">
-      <div className="flex items-center justify-between gap-2">
-        <span className={answered ? 'line-through text-ink/40' : ''}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <span className={`min-w-0 ${answered ? 'line-through text-ink/40' : ''}`}>
           {question.text} {question.origin === 'ai' && <span className="chip bg-ink/5 text-ink/40 text-[10px] ml-1">AI</span>}
         </span>
         <div className="flex gap-1 shrink-0">

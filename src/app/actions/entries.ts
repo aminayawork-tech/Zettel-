@@ -222,6 +222,73 @@ export async function createEntry(formData: FormData) {
   redirect(`/entry/${entry.id}`);
 }
 
+// Editing an existing entry updates its own text/tags/takeaways only — it
+// doesn't touch images or re-run the Connections Engine / Question Assist,
+// which are tied to the original save. Keeps edits fast and predictable.
+export async function updateEntry(entryId: string, formData: FormData) {
+  const user = await requireUser();
+
+  const existing = await prisma.entry.findUnique({ where: { id: entryId } });
+  if (!existing || existing.userId !== user.id) throw new Error('Not found');
+
+  const sourceTitle = String(formData.get('sourceTitle') || '').trim();
+  const sourceType = String(formData.get('sourceType') || 'other');
+  const sourceLink = String(formData.get('sourceLink') || '').trim() || null;
+  const headline = String(formData.get('headline') || '').trim().slice(0, LIMITS.mainIdea) || null;
+  const mainIdea = capWords(String(formData.get('mainIdea') || '').trim().slice(0, LIMITS.mainIdea), 40);
+  const surprise = String(formData.get('surprise') || '').trim() || null;
+  const whyItMatters = String(formData.get('whyItMatters') || '').trim() || null;
+  const action = String(formData.get('action') || '').trim() || null;
+  const explanation = String(formData.get('explanation') || '').trim() || null;
+  const quote = String(formData.get('quote') || '').trim().slice(0, LIMITS.quote) || null;
+  const quickMode = formData.get('quickMode') === 'true';
+  const tagsRaw = String(formData.get('tags') || '');
+
+  if (!sourceTitle || !mainIdea) {
+    throw new Error('Source title and main idea are required.');
+  }
+
+  const takeawayTexts = [0, 1, 2]
+    .map((i) => String(formData.get(`takeaway_${i}`) || '').trim())
+    .filter((t) => t.length > 0);
+
+  const tags = tagsRaw
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  await prisma.entry.update({
+    where: { id: entryId },
+    data: { sourceTitle, sourceType, sourceLink, headline, mainIdea, surprise, whyItMatters, action, explanation, quote, quickMode },
+  });
+
+  // Update takeaways in place by position so an existing image attachment on
+  // a takeaway survives an edit; only add/remove rows if the count changed.
+  const existingTakeaways = await prisma.takeaway.findMany({ where: { entryId }, orderBy: { position: 'asc' } });
+  for (let i = 0; i < Math.max(existingTakeaways.length, takeawayTexts.length); i++) {
+    const text = takeawayTexts[i];
+    const existing = existingTakeaways[i];
+    if (text && existing) {
+      await prisma.takeaway.update({ where: { id: existing.id }, data: { text: text.slice(0, LIMITS.takeaway) } });
+    } else if (text && !existing) {
+      await prisma.takeaway.create({ data: { entryId, text: text.slice(0, LIMITS.takeaway), position: i } });
+    } else if (!text && existing) {
+      await prisma.takeaway.delete({ where: { id: existing.id } });
+    }
+  }
+
+  await prisma.entryTag.deleteMany({ where: { entryId } });
+  for (const name of tags) {
+    const tag = await prisma.tag.upsert({ where: { name }, update: {}, create: { name } });
+    await prisma.entryTag.create({ data: { entryId, tagId: tag.id } }).catch(() => {});
+  }
+
+  revalidatePath('/journal');
+  revalidatePath(`/entry/${entryId}`);
+  redirect(`/entry/${entryId}`);
+}
+
 export async function rateEntry(entryId: string, stillHoldsUp: boolean) {
   const user = await requireUser();
   await prisma.entry.updateMany({

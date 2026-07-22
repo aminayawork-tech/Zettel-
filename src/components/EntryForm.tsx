@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { createEntry, polishEntryDraft } from '@/app/actions/entries';
+import { createEntry, updateEntry, polishEntryDraft } from '@/app/actions/entries';
 import type { PolishResult } from '@/lib/ai';
 import { LIMITS, SOURCE_TYPES } from '@/lib/enums';
 import { wordCount } from '@/lib/utils';
@@ -10,24 +10,53 @@ import EntryImagesUploader from '@/components/EntryImagesUploader';
 
 const QUOTE_WORD_CAP = 30;
 
-export default function EntryForm() {
+export interface EditableEntry {
+  sourceTitle: string;
+  sourceType: string;
+  sourceLink: string;
+  headline: string;
+  mainIdea: string;
+  takeaways: string[];
+  surprise: string;
+  whyItMatters: string;
+  action: string;
+  explanation: string;
+  quote: string;
+  tags: string;
+  quickMode: boolean;
+}
+
+interface EntryFormProps {
+  mode?: 'create' | 'edit';
+  entryId?: string;
+  initialEntry?: EditableEntry;
+}
+
+export default function EntryForm({ mode = 'create', entryId, initialEntry }: EntryFormProps) {
+  const isEdit = mode === 'edit';
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [quickMode, setQuickMode] = useState(true);
+  const [quickMode, setQuickMode] = useState(initialEntry?.quickMode ?? true);
+  // Editing always shows the full field set (lets you flesh out a 1-3-1 entry
+  // later); the Quick/Full toggle only applies to new entries.
+  const showFullFields = isEdit || !quickMode;
 
-  const [sourceTitle, setSourceTitle] = useState('');
-  const [sourceType, setSourceType] = useState('book');
-  const [sourceLink, setSourceLink] = useState('');
-  const [headline, setHeadline] = useState('');
-  const [mainIdea, setMainIdea] = useState('');
-  const [takeaways, setTakeaways] = useState(['', '', '']);
-  const [surprise, setSurprise] = useState('');
-  const [whyItMatters, setWhyItMatters] = useState('');
+  const [sourceTitle, setSourceTitle] = useState(initialEntry?.sourceTitle ?? '');
+  const [sourceType, setSourceType] = useState(initialEntry?.sourceType ?? 'book');
+  const [sourceLink, setSourceLink] = useState(initialEntry?.sourceLink ?? '');
+  const [headline, setHeadline] = useState(initialEntry?.headline ?? '');
+  const [mainIdea, setMainIdea] = useState(initialEntry?.mainIdea ?? '');
+  const [takeaways, setTakeaways] = useState(() => {
+    const t = initialEntry?.takeaways ?? [];
+    return [t[0] ?? '', t[1] ?? '', t[2] ?? ''];
+  });
+  const [surprise, setSurprise] = useState(initialEntry?.surprise ?? '');
+  const [whyItMatters, setWhyItMatters] = useState(initialEntry?.whyItMatters ?? '');
   const [questions, setQuestions] = useState<string[]>(['']);
-  const [action, setAction] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [quote, setQuote] = useState('');
-  const [tags, setTags] = useState('');
+  const [action, setAction] = useState(initialEntry?.action ?? '');
+  const [explanation, setExplanation] = useState(initialEntry?.explanation ?? '');
+  const [quote, setQuote] = useState(initialEntry?.quote ?? '');
+  const [tags, setTags] = useState(initialEntry?.tags ?? '');
 
   const [entryImages, setEntryImages] = useState<File[]>([]);
   const [takeawayImages, setTakeawayImages] = useState<(File | null)[]>([null, null, null]);
@@ -38,7 +67,7 @@ export default function EntryForm() {
   const [polishResult, setPolishResult] = useState<PolishResult | null>(null);
   const [polishBaseline, setPolishBaseline] = useState<{ mainIdea: string; takeaways: string[]; surprise: string; whyItMatters: string; explanation: string; quote: string } | null>(null);
 
-  const takeawayLabel = quickMode ? 'Important Points' : 'Three Key Takeaways';
+  const takeawayLabel = showFullFields ? 'Three Key Takeaways' : 'Important Points';
 
   function handlePolish() {
     setPolishError(null);
@@ -78,7 +107,7 @@ export default function EntryForm() {
     if (!polishResult) return;
     setMainIdea(polishResult.corrected.mainIdea.slice(0, LIMITS.mainIdea));
     setTakeaways((prev) => prev.map((t, i) => polishResult.corrected.takeaways[i] ?? t));
-    if (!quickMode) {
+    if (showFullFields) {
       setSurprise(polishResult.corrected.surprise);
       setWhyItMatters(polishResult.corrected.whyItMatters);
       setExplanation(polishResult.corrected.explanation);
@@ -106,26 +135,32 @@ export default function EntryForm() {
     fd.set('headline', headline);
     fd.set('mainIdea', mainIdea);
     takeaways.forEach((t, i) => fd.set(`takeaway_${i}`, t));
-    fd.set('surprise', quickMode ? '' : surprise);
-    fd.set('whyItMatters', quickMode ? '' : whyItMatters);
+    fd.set('surprise', showFullFields ? surprise : '');
+    fd.set('whyItMatters', showFullFields ? whyItMatters : '');
     fd.set('action', action);
-    fd.set('explanation', quickMode ? '' : explanation);
-    fd.set('quote', quickMode ? '' : quote);
-    fd.set('quickMode', String(quickMode));
+    fd.set('explanation', showFullFields ? explanation : '');
+    fd.set('quote', showFullFields ? quote : '');
+    fd.set('quickMode', String(isEdit ? (initialEntry?.quickMode ?? false) : quickMode));
     fd.set('tags', tags);
-    fd.set('questionsJson', JSON.stringify(quickMode ? [] : questions.filter((q) => q.trim())));
 
-    entryImages.forEach((f) => fd.append('entryImages', f));
-    if (!quickMode) {
-      takeawayImages.forEach((f, i) => {
-        if (f) fd.set(`takeawayImage_${i}`, f);
-      });
-      if (quoteImage) fd.set('quoteImage', quoteImage);
+    if (!isEdit) {
+      fd.set('questionsJson', JSON.stringify(showFullFields ? questions.filter((q) => q.trim()) : []));
+      entryImages.forEach((f) => fd.append('entryImages', f));
+      if (showFullFields) {
+        takeawayImages.forEach((f, i) => {
+          if (f) fd.set(`takeawayImage_${i}`, f);
+        });
+        if (quoteImage) fd.set('quoteImage', quoteImage);
+      }
     }
 
     startTransition(async () => {
       try {
-        await createEntry(fd);
+        if (isEdit && entryId) {
+          await updateEntry(entryId, fd);
+        } else {
+          await createEntry(fd);
+        }
       } catch (e) {
         const digest = (e as { digest?: string })?.digest;
         if (digest?.startsWith('NEXT_REDIRECT')) throw e;
@@ -137,24 +172,26 @@ export default function EntryForm() {
   return (
     <div className="space-y-8 pb-16">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold">New entry</h1>
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <span className={quickMode ? 'text-ink/40' : 'font-medium'}>Full</span>
-          <span className="relative inline-block w-10 h-5">
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              checked={quickMode}
-              onChange={(e) => setQuickMode(e.target.checked)}
-            />
-            <span className="absolute inset-0 rounded-full bg-ink/20 peer-checked:bg-accent transition-colors" />
-            <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
-          </span>
-          <span className={quickMode ? 'font-medium' : 'text-ink/40'}>Quick (1-3-1)</span>
-        </label>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold">{isEdit ? 'Edit entry' : 'New entry'}</h1>
+        {!isEdit && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <span className={quickMode ? 'text-ink/40' : 'font-medium'}>Full</span>
+            <span className="relative inline-block w-10 h-5">
+              <input
+                type="checkbox"
+                className="peer sr-only"
+                checked={quickMode}
+                onChange={(e) => setQuickMode(e.target.checked)}
+              />
+              <span className="absolute inset-0 rounded-full bg-ink/20 peer-checked:bg-accent transition-colors" />
+              <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5" />
+            </span>
+            <span className={quickMode ? 'font-medium' : 'text-ink/40'}>Quick (1-3-1)</span>
+          </label>
+        )}
       </div>
 
-      {quickMode && (
+      {!isEdit && quickMode && (
         <p className="text-sm text-ink/60 -mt-4">
           Fast path: 1 Big Idea, 3 Important Points, 1 Action. Connections and question suggestions still run automatically once you save.
         </p>
@@ -183,10 +220,12 @@ export default function EntryForm() {
           <label className="label">Link (optional)</label>
           <input className="input" value={sourceLink} onChange={(e) => setSourceLink(e.target.value)} placeholder="https://…" />
         </div>
-        <div>
-          <label className="label">Photos (optional)</label>
-          <EntryImagesUploader onChange={setEntryImages} />
-        </div>
+        {!isEdit && (
+          <div>
+            <label className="label">Photos (optional)</label>
+            <EntryImagesUploader onChange={setEntryImages} />
+          </div>
+        )}
       </section>
 
       {/* Main idea */}
@@ -224,7 +263,7 @@ export default function EntryForm() {
                 }}
               />
             </div>
-            {!quickMode && (
+            {!isEdit && showFullFields && (
               <div className="pl-6">
                 <ImageSlot
                   label="attach photo"
@@ -240,7 +279,7 @@ export default function EntryForm() {
         ))}
       </section>
 
-      {!quickMode && (
+      {showFullFields && (
         <>
           {/* Surprise */}
           <section className="card p-5 space-y-2">
@@ -263,33 +302,35 @@ export default function EntryForm() {
             <input className="input" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="e.g. focus, habits, productivity (comma separated)" />
           </section>
 
-          {/* Questions */}
-          <section className="card p-5 space-y-3">
-            <h2 className="font-serif text-lg font-semibold">Questions I still have</h2>
-            <p className="text-xs text-ink/50">Zettel will suggest a few more angles once you save.</p>
-            {questions.map((q, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  className="input"
-                  value={q}
-                  onChange={(e) => {
-                    const next = [...questions];
-                    next[i] = e.target.value;
-                    setQuestions(next);
-                  }}
-                  placeholder="What am I still unsure about?"
-                />
-                {questions.length > 1 && (
-                  <button type="button" className="text-ink/30 hover:text-ink" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-            <button type="button" className="btn-ghost text-xs" onClick={() => setQuestions([...questions, ''])}>
-              + Add another question
-            </button>
-          </section>
+          {/* Questions — only for new entries; editing manages existing questions from the entry page instead */}
+          {!isEdit && (
+            <section className="card p-5 space-y-3">
+              <h2 className="font-serif text-lg font-semibold">Questions I still have</h2>
+              <p className="text-xs text-ink/50">Zettel will suggest a few more angles once you save.</p>
+              {questions.map((q, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    className="input"
+                    value={q}
+                    onChange={(e) => {
+                      const next = [...questions];
+                      next[i] = e.target.value;
+                      setQuestions(next);
+                    }}
+                    placeholder="What am I still unsure about?"
+                  />
+                  {questions.length > 1 && (
+                    <button type="button" className="text-ink/30 hover:text-ink" onClick={() => setQuestions(questions.filter((_, idx) => idx !== i))}>
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="btn-ghost text-xs" onClick={() => setQuestions([...questions, ''])}>
+                + Add another question
+              </button>
+            </section>
+          )}
         </>
       )}
 
@@ -299,7 +340,7 @@ export default function EntryForm() {
         <input className="input" value={action} onChange={(e) => setAction(e.target.value)} />
       </section>
 
-      {!quickMode && (
+      {showFullFields && (
         <>
           {/* Feynman */}
           <section className="card p-5 space-y-2">
@@ -324,7 +365,7 @@ export default function EntryForm() {
             />
             <div className="flex items-center justify-between text-xs text-ink/40">
               <span>{wordCount(quote)}/{QUOTE_WORD_CAP} words</span>
-              <ImageSlot label="attach photo" onChange={setQuoteImage} />
+              {!isEdit && <ImageSlot label="attach photo" onChange={setQuoteImage} />}
             </div>
           </section>
         </>
@@ -368,7 +409,7 @@ export default function EntryForm() {
             {polishBaseline.takeaways.map((t, i) => (
               <PolishDiff key={i} label={`Takeaway ${i + 1}`} before={t} after={polishResult.corrected.takeaways[i] || t} />
             ))}
-            {!quickMode && (
+            {showFullFields && (
               <>
                 <PolishDiff label="Surprise" before={polishBaseline.surprise} after={polishResult.corrected.surprise} />
                 <PolishDiff label="Why it matters" before={polishBaseline.whyItMatters} after={polishResult.corrected.whyItMatters} />
@@ -393,7 +434,7 @@ export default function EntryForm() {
 
       <div className="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-paper/95 backdrop-blur border-t border-ink/10 sm:border-0 sm:bg-transparent sm:backdrop-blur-none flex sm:justify-end">
         <button type="button" disabled={pending} onClick={handleSubmit} className="btn-primary shadow-lg w-full sm:w-auto sm:px-8">
-          {pending ? 'Saving…' : 'Save entry'}
+          {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Save entry'}
         </button>
       </div>
     </div>

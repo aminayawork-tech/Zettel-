@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Providers from '@/components/Providers';
 import Nav from '@/components/Nav';
 import './globals.css';
@@ -6,6 +6,16 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Zettel — a reflective learning journal',
   description: 'Turn what you read, watch, and hear into lasting understanding.',
+};
+
+// Locks pinch/double-tap zoom so the layout stays fit-to-screen like a native
+// app on mobile, instead of users being able to zoom out into broken/overflowing
+// layouts (fixed-width elements like the graph don't reflow with visual zoom).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -22,9 +22,9 @@ export default async function DigestPage() {
         ) : (
           <ul className="space-y-2">
             {openQuestions.map((q) => (
-              <li key={q.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex items-center justify-between gap-3">
-                <span>{q.text}</span>
-                <Link href={`/entry/${q.sourceEntry.id}`} className="text-xs text-accent whitespace-nowrap">
+              <li key={q.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                <span className="min-w-0">{q.text}</span>
+                <Link href={`/entry/${q.sourceEntry.id}`} className="text-xs text-accent whitespace-nowrap shrink-0">
                   {q.sourceEntry.sourceTitle} →
                 </Link>
               </li>
@@ -40,9 +40,9 @@ export default async function DigestPage() {
         ) : (
           <ul className="space-y-2">
             {unfollowedActions.map((e) => (
-              <li key={e.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex items-center justify-between gap-3">
-                <span>{e.action}</span>
-                <Link href={`/entry/${e.id}`} className="text-xs text-accent whitespace-nowrap">
+              <li key={e.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                <span className="min-w-0">{e.action}</span>
+                <Link href={`/entry/${e.id}`} className="text-xs text-accent whitespace-nowrap shrink-0">
                   {e.sourceTitle} →
                 </Link>
               </li>
@@ -58,12 +58,12 @@ export default async function DigestPage() {
         ) : (
           <ul className="space-y-2">
             {pendingConnections.map((l) => (
-              <li key={l.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex items-center justify-between gap-3">
-                <span>
+              <li key={l.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                <span className="min-w-0">
                   <span className="chip bg-accent/10 text-accent mr-2">{RELATION_LABELS[l.relationType as RelationType]}</span>
                   {l.fromEntry.sourceTitle} ↔ {l.toEntry.sourceTitle}
                 </span>
-                <Link href={`/entry/${l.fromEntry.id}`} className="text-xs text-accent whitespace-nowrap">
+                <Link href={`/entry/${l.fromEntry.id}`} className="text-xs text-accent whitespace-nowrap shrink-0">
                   Review →
                 </Link>
               </li>
