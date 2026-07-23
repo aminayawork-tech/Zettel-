@@ -1,14 +1,21 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
 import {
   acceptAiQuestion,
   dismissAiQuestion,
   markQuestionAnswered,
   reopenQuestion,
   linkQuestionToFollowup,
+  addQuestionFollowup,
 } from '@/app/actions/questions';
+import { timeAgo } from '@/lib/utils';
+
+interface FollowupData {
+  id: string;
+  text: string;
+  createdAt: Date;
+}
 
 interface QuestionData {
   id: string;
@@ -17,6 +24,7 @@ interface QuestionData {
   accepted: boolean;
   status: string;
   answerEntryId: string | null;
+  followups: FollowupData[];
 }
 
 export default function QuestionsPanel({
@@ -79,9 +87,18 @@ function QuestionRow({
   pending: boolean;
   startTransition: React.TransitionStartFunction;
 }) {
+  const [replying, setReplying] = useState(false);
+  const [replyText, setReplyText] = useState('');
   const [linking, setLinking] = useState(false);
   const [followupId, setFollowupId] = useState('');
   const answered = question.status === 'answered';
+
+  function submitReply() {
+    if (!replyText.trim()) return;
+    startTransition(() => addQuestionFollowup(question.id, replyText));
+    setReplyText('');
+    setReplying(false);
+  }
 
   return (
     <div className="border border-ink/10 rounded-md px-3 py-2 text-sm">
@@ -96,36 +113,77 @@ function QuestionRow({
             </button>
           ) : (
             <>
-              <button disabled={pending} className="btn-ghost text-xs py-1" onClick={() => startTransition(() => markQuestionAnswered(question.id))}>
-                Mark answered
+              <button disabled={pending} className="btn-secondary text-xs py-1" onClick={() => setReplying(!replying)}>
+                Follow up
               </button>
-              <button disabled={pending} className="btn-ghost text-xs py-1" onClick={() => setLinking(!linking)}>
-                Link follow-up
+              <button disabled={pending} className="btn-ghost text-xs py-1" onClick={() => startTransition(() => markQuestionAnswered(question.id))}>
+                Resolve
               </button>
             </>
           )}
         </div>
       </div>
-      {linking && (
-        <div className="flex gap-2 mt-2">
-          <select className="input text-xs py-1 w-auto flex-1" value={followupId} onChange={(e) => setFollowupId(e.target.value)}>
-            <option value="">Choose the entry that answers this…</option>
-            {otherEntries.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.sourceTitle}
-              </option>
-            ))}
-          </select>
-          <button
-            disabled={!followupId || pending}
-            className="btn-secondary text-xs"
-            onClick={() => {
-              startTransition(() => linkQuestionToFollowup(question.id, followupId));
-              setLinking(false);
-            }}
-          >
-            Link
-          </button>
+
+      {question.followups.length > 0 && (
+        <div className="mt-2 pl-3 border-l-2 border-ink/10 space-y-2">
+          {question.followups.map((f) => (
+            <div key={f.id}>
+              <p>{f.text}</p>
+              <p className="text-xs text-ink/40">{timeAgo(f.createdAt)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {replying && (
+        <div className="mt-2 space-y-2">
+          <textarea
+            className="input text-sm"
+            rows={2}
+            autoFocus
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Add your thinking, then keep going next time you revisit this…"
+          />
+          <div className="flex gap-2">
+            <button disabled={!replyText.trim() || pending} className="btn-secondary text-xs py-1" onClick={submitReply}>
+              Post
+            </button>
+            <button className="btn-ghost text-xs py-1" onClick={() => setReplying(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!answered && otherEntries.length > 0 && (
+        <div className="mt-2">
+          {linking ? (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select className="input text-xs py-1 min-w-0 flex-1" value={followupId} onChange={(e) => setFollowupId(e.target.value)}>
+                <option value="">Choose the entry that answers this…</option>
+                {otherEntries.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.sourceTitle}
+                  </option>
+                ))}
+              </select>
+              <button
+                disabled={!followupId || pending}
+                className="btn-secondary text-xs shrink-0"
+                onClick={() => {
+                  startTransition(() => linkQuestionToFollowup(question.id, followupId));
+                  setLinking(false);
+                }}
+              >
+                Link
+              </button>
+            </div>
+          ) : (
+            <button className="text-xs text-ink/40 hover:text-ink underline" onClick={() => setLinking(true)}>
+              or link an existing entry as the answer
+            </button>
+          )}
         </div>
       )}
     </div>

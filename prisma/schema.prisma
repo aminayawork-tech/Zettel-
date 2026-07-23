@@ -181,8 +181,22 @@ model Question {
   createdAt     DateTime  @default(now())
   resolvedAt    DateTime?
 
+  followups QuestionFollowup[]
+
   @@index([userId, status])
   @@index([sourceEntryId])
+}
+
+// A lightweight reply thread on a question — lets the user keep developing an
+// answer over time ("continue the thread") without needing a full new Entry.
+model QuestionFollowup {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  text       String
+  createdAt  DateTime @default(now())
+
+  @@index([questionId])
 }
 
 // Feynman-test / "does this still hold up" style prompts a user answered inline.

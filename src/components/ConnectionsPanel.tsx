@@ -31,11 +31,13 @@ export default function ConnectionsPanel({
   linksFrom,
   linksTo,
   otherEntries,
+  isPrinciple,
 }: {
   entryId: string;
   linksFrom: OutLink[];
   linksTo: InLink[];
   otherEntries: { id: string; sourceTitle: string; type: string }[];
+  isPrinciple?: boolean;
 }) {
   const suggested = linksFrom.filter((l) => l.status === 'suggested');
   const confirmed = linksFrom.filter((l) => l.status === 'confirmed');
@@ -75,7 +77,7 @@ export default function ConnectionsPanel({
 
       {linksTo.length > 0 && (
         <div className="space-y-2">
-          <p className="label">Linked from</p>
+          <p className="label">{isPrinciple ? 'Entries that exemplify this principle' : 'Linked from'}</p>
           {linksTo.map((l) => (
             <div key={l.id} className="text-sm border border-ink/10 rounded-md px-3 py-2">
               <span className="chip bg-ink/5 text-ink/60 mr-2">{RELATION_LABELS[l.relationType]}</span>
@@ -166,7 +168,7 @@ function ManualLinkForm({
     <div className="pt-2 border-t border-ink/10">
       <p className="label mb-2">Tag a connection manually</p>
       <div className="flex flex-wrap gap-2">
-        <select className="input text-sm w-auto flex-1 min-w-[160px]" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+        <select className="input text-sm flex-1 min-w-0" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
           <option value="">Choose an entry…</option>
           {otherEntries.map((e) => (
             <option key={e.id} value={e.id}>

@@ -7,7 +7,7 @@ import type { RelationType } from '@/lib/enums';
 import ConnectionsPanel from '@/components/ConnectionsPanel';
 import QuestionsPanel from '@/components/QuestionsPanel';
 import ShareDialog from '@/components/ShareDialog';
-import EntryActions from '@/components/EntryActions';
+import EntryPageMenu from '@/components/EntryPageMenu';
 import StillHoldsUp from '@/components/StillHoldsUp';
 import ActionCheckbox from '@/components/ActionCheckbox';
 import { SourceIcon } from '@/components/icons';
@@ -21,7 +21,7 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
       takeaways: { include: { image: true }, orderBy: { position: 'asc' } },
       images: true,
       tags: { include: { tag: true } },
-      questions: { orderBy: { createdAt: 'asc' } },
+      questions: { include: { followups: { orderBy: { createdAt: 'asc' } } }, orderBy: { createdAt: 'asc' } },
       linksFrom: { include: { toEntry: true } },
       linksTo: { include: { fromEntry: true } },
     },
@@ -45,8 +45,8 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
 
   return (
     <div className="space-y-8 pb-16">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm text-ink/50">
             {isPrinciple ? (
               <span className="chip bg-moss/15 text-moss">Principle</span>
@@ -58,22 +58,15 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
             {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
             <span>· {entry.createdAt.toLocaleDateString()}</span>
           </div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold mt-1">{entry.headline || entry.sourceTitle}</h1>
-          {entry.headline && !isPrinciple && <p className="text-sm text-ink/50">{entry.sourceTitle}</p>}
+          <h1 className="font-serif text-xl sm:text-3xl font-bold mt-1 leading-tight">{entry.headline || entry.sourceTitle}</h1>
+          {entry.headline && !isPrinciple && <p className="text-sm text-ink/50 mt-0.5">{entry.sourceTitle}</p>}
           {entry.sourceLink && (
-            <a href={entry.sourceLink} target="_blank" rel="noreferrer" className="text-sm text-accent underline">
+            <a href={entry.sourceLink} target="_blank" rel="noreferrer" className="text-sm text-accent underline break-all">
               {entry.sourceLink}
             </a>
           )}
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {!isPrinciple && (
-            <Link href={`/entry/${entry.id}/edit`} className="btn-ghost text-xs text-ink/40 hover:text-ink">
-              Edit
-            </Link>
-          )}
-          <EntryActions entryId={entry.id} />
-        </div>
+        <EntryPageMenu entryId={entry.id} isPrinciple={isPrinciple} />
       </div>
 
       <section className="card p-6">
@@ -187,6 +180,7 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
           other: { id: l.fromEntry.id, title: l.fromEntry.sourceTitle, type: l.fromEntry.type },
         }))}
         otherEntries={otherEntries}
+        isPrinciple={isPrinciple}
       />
 
       {confirmedLinks.length >= 2 && !isPrinciple && (

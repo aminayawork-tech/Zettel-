@@ -27,33 +27,48 @@ export async function dismissAiQuestion(questionId: string) {
 
 export async function markQuestionAnswered(questionId: string) {
   const user = await requireUser();
-  await assertOwnsQuestion(questionId, user.id);
+  const q = await assertOwnsQuestion(questionId, user.id);
   await prisma.question.update({
     where: { id: questionId },
     data: { status: 'answered', resolvedAt: new Date() },
   });
   revalidatePath('/digest');
   revalidatePath('/journal');
+  revalidatePath(`/entry/${q.sourceEntryId}`);
 }
 
 export async function reopenQuestion(questionId: string) {
   const user = await requireUser();
-  await assertOwnsQuestion(questionId, user.id);
+  const q = await assertOwnsQuestion(questionId, user.id);
   await prisma.question.update({
     where: { id: questionId },
     data: { status: 'open', resolvedAt: null, answerEntryId: null },
   });
   revalidatePath('/digest');
+  revalidatePath(`/entry/${q.sourceEntryId}`);
 }
 
 export async function linkQuestionToFollowup(questionId: string, followupEntryId: string) {
   const user = await requireUser();
-  await assertOwnsQuestion(questionId, user.id);
+  const q = await assertOwnsQuestion(questionId, user.id);
   const entry = await prisma.entry.findUnique({ where: { id: followupEntryId } });
   if (!entry || entry.userId !== user.id) throw new Error('Entry not found');
   await prisma.question.update({
     where: { id: questionId },
     data: { status: 'answered', answerEntryId: followupEntryId, resolvedAt: new Date() },
   });
+  revalidatePath('/digest');
+  revalidatePath(`/entry/${q.sourceEntryId}`);
+}
+
+// A quick, evolving reply to a question — lets the thread continue without
+// forcing a decision on whether the question is fully "answered" yet.
+export async function addQuestionFollowup(questionId: string, text: string) {
+  const user = await requireUser();
+  const q = await assertOwnsQuestion(questionId, user.id);
+  const trimmed = text.trim().slice(0, 1000);
+  if (!trimmed) throw new Error('Follow-up cannot be empty.');
+  await prisma.questionFollowup.create({ data: { questionId, text: trimmed } });
+  revalidatePath(`/entry/${q.sourceEntryId}`);
   revalidatePath('/digest');
 }
