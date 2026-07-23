@@ -24,7 +24,7 @@ export default async function DigestPage() {
             {openQuestions.map((q) => (
               <li key={q.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                 <span className="min-w-0">{q.text}</span>
-                <Link href={`/entry/${q.sourceEntry.id}`} className="text-xs text-accent whitespace-nowrap shrink-0">
+                <Link href={`/entry/${q.sourceEntry.id}`} className="text-xs text-accent min-w-0 sm:max-w-[40%] sm:text-right">
                   {q.sourceEntry.sourceTitle} →
                 </Link>
               </li>
@@ -42,7 +42,7 @@ export default async function DigestPage() {
             {unfollowedActions.map((e) => (
               <li key={e.id} className="text-sm border border-ink/10 rounded-md px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
                 <span className="min-w-0">{e.action}</span>
-                <Link href={`/entry/${e.id}`} className="text-xs text-accent whitespace-nowrap shrink-0">
+                <Link href={`/entry/${e.id}`} className="text-xs text-accent min-w-0 sm:max-w-[40%] sm:text-right">
                   {e.sourceTitle} →
                 </Link>
               </li>
