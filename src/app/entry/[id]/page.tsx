@@ -45,28 +45,28 @@ export default async function EntryPage({ params }: { params: { id: string } }) 
 
   return (
     <div className="space-y-8 pb-16">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm text-ink/50">
-            {isPrinciple ? (
-              <span className="chip bg-moss/15 text-moss">Principle</span>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                <SourceIcon type={entry.sourceType} className="w-3.5 h-3.5" /> {entry.sourceType}
-              </span>
-            )}
-            {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
-            <span>· {entry.createdAt.toLocaleDateString()}</span>
-          </div>
-          <h1 className="font-serif text-xl sm:text-3xl font-bold mt-1 leading-tight">{entry.headline || entry.sourceTitle}</h1>
-          {entry.headline && !isPrinciple && <p className="text-sm text-ink/50 mt-0.5">{entry.sourceTitle}</p>}
-          {entry.sourceLink && (
-            <a href={entry.sourceLink} target="_blank" rel="noreferrer" className="text-sm text-accent underline break-all">
-              {entry.sourceLink}
-            </a>
-          )}
+      <div className="relative text-center">
+        <div className="absolute right-0 top-0">
+          <EntryPageMenu entryId={entry.id} isPrinciple={isPrinciple} />
         </div>
-        <EntryPageMenu entryId={entry.id} isPrinciple={isPrinciple} />
+        <div className="flex items-center justify-center gap-2 text-sm text-ink/50 px-10">
+          {isPrinciple ? (
+            <span className="chip bg-moss/15 text-moss">Principle</span>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <SourceIcon type={entry.sourceType} className="w-3.5 h-3.5" /> {entry.sourceType}
+            </span>
+          )}
+          {entry.quickMode && <span className="chip bg-accent/10 text-accent">1-3-1</span>}
+          <span>· {entry.createdAt.toLocaleDateString()}</span>
+        </div>
+        <h1 className="font-serif text-xl sm:text-3xl font-bold mt-1 leading-tight px-10">{entry.headline || entry.sourceTitle}</h1>
+        {entry.headline && !isPrinciple && <p className="text-sm text-ink/50 mt-0.5">{entry.sourceTitle}</p>}
+        {entry.sourceLink && (
+          <a href={entry.sourceLink} target="_blank" rel="noreferrer" className="text-sm text-accent underline break-all">
+            {entry.sourceLink}
+          </a>
+        )}
       </div>
 
       <section className="card p-6">
