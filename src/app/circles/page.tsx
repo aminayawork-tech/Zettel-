@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { requireUser } from '@/lib/session';
 import { prisma } from '@/lib/prisma';
 import { createCircle } from '@/app/actions/circles';
+import OwnedCircleCard from '@/components/OwnedCircleCard';
 
 export default async function CirclesPage() {
   const user = await requireUser();
@@ -38,10 +38,7 @@ export default async function CirclesPage() {
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">
             {owned.map((c) => (
-              <Link key={c.id} href={`/circles/${c.id}`} className="card p-4 hover:border-accent/50">
-                <p className="font-medium">{c.name}</p>
-                <p className="text-xs text-ink/50 mt-1">{c.members.length} member{c.members.length === 1 ? '' : 's'}</p>
-              </Link>
+              <OwnedCircleCard key={c.id} circle={{ id: c.id, name: c.name, memberCount: c.members.length }} />
             ))}
           </div>
         )}
