@@ -437,7 +437,7 @@ export default function EntryForm({ mode = 'create', entryId, initialEntry }: En
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-paper/95 backdrop-blur border-t border-ink/10 sm:border-0 sm:bg-transparent sm:backdrop-blur-none flex sm:justify-end">
+      <div className="sticky bottom-[72px] md:bottom-0 -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0 bg-paper/95 backdrop-blur border-t border-ink/10 md:border-0 md:bg-transparent md:backdrop-blur-none flex md:justify-end">
         <button type="button" disabled={pending} onClick={handleSubmit} className="btn-primary shadow-lg w-full sm:w-auto sm:px-8">
           {pending ? 'Saving…' : isEdit ? 'Save changes' : 'Save entry'}
         </button>

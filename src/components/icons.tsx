@@ -85,6 +85,89 @@ export function SparklesIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
   );
 }
 
+export function HomeIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+    </svg>
+  );
+}
+
+export function CalendarIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="3" x2="8" y2="7" />
+      <line x1="16" y1="3" x2="16" y2="7" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <line x1="12" y1="4" x2="12" y2="20" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+    </svg>
+  );
+}
+
+export function ListChecksIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="m3 6 1.5 1.5L7 5" />
+      <path d="m3 12 1.5 1.5L7 11" />
+      <path d="m3 18 1.5 1.5L7 17" />
+      <line x1="11" y1="6" x2="21" y2="6" />
+      <line x1="11" y1="12" x2="21" y2="12" />
+      <line x1="11" y1="18" x2="21" y2="18" />
+    </svg>
+  );
+}
+
+export function UsersIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <circle cx="17.5" cy="9" r="2.5" />
+      <path d="M15.5 13a5 5 0 0 1 6.5 4.5" />
+    </svg>
+  );
+}
+
+export function ShareNetworkIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="17" cy="6" r="2.5" />
+      <circle cx="17" cy="18" r="2.5" />
+      <line x1="8.3" y1="10.8" x2="14.7" y2="7.2" />
+      <line x1="8.3" y1="13.2" x2="14.7" y2="16.8" />
+    </svg>
+  );
+}
+
+export function CirclesIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="9" r="6" />
+      <circle cx="15" cy="15" r="6" />
+    </svg>
+  );
+}
+
+export function SearchIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <line x1="15.3" y1="15.3" x2="21" y2="21" />
+    </svg>
+  );
+}
+
 export function MoreIcon({ className = `w-4 h-4 ${base}` }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>

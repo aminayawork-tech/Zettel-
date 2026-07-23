@@ -12,10 +12,12 @@ interface NavLink {
 
 export default function NavMenu({
   links,
+  mobileLinks,
   openQuestionCount,
   userName,
 }: {
   links: NavLink[];
+  mobileLinks: NavLink[];
   openQuestionCount: number;
   userName: string;
 }) {
@@ -70,14 +72,11 @@ export default function NavMenu({
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
-          {openQuestionCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-accent" />
-          )}
         </button>
 
         {open && (
           <div className="absolute right-0 top-full mt-2 w-56 card shadow-lg py-2 z-40">
-            {links.map((l) => (
+            {mobileLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
